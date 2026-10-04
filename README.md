@@ -31,7 +31,11 @@ Il modulo deve:
 
 Ciascuna di queste operazioni dovrà essere svolta riga per riga per evitare problemi di memoria, dunque il flow di lavoro sarà: decompressione di una riga, parsing, inserimento in vettore dinamico, restituzione del vettore al modulo successivo, ripetere da capo.
 
-### 1.5 Strutture dati e librerie necessarie:
+
+Per raggiungere lo scopo sarà necessario implementare:
+* ...
+
+### 1.5 Strutture dati, librerie e algoritmi necessari:
 * Vettori dinamici
 * Libreria libbz2
 * Librerie string e sstream per il parsing
@@ -49,26 +53,45 @@ L'output di DataLoader sarà utilizzato dal modulo successivo (ASGraph) come inp
 
 ### 2.1 Compiti principali del modulo
 
-* Ricezione e costruzione graduale del grafo AS partendo dalle sequenze fornite da DataLoader
-* Mappatura dei ID degli AS tramite tabelle hash
+* Ricezione e costruzione dinamica del grafo AS partendo dalle sequenze fornite da DataLoader
+* Mappatura degli ASN (Autonomous System Number) tramite tabelle hash
 * Aggiornamento delle frequenze degli archi
 * Individuazione della componente connessa massimale
 
-### 2.2 Strutture dati necessarie
+### 2.2 Input:
+Il modulo deve ricevere in input vettori dinamici di ASN forniti da DataLoader
 
-* Tabella hash per la mappatura degli ID
+### 2.3 Output:
+Il modulo dovrà restituire in output un Grafo, con interfaccia interrogabile dagli altri moduli e che contiente tutte le informazioni definite di seguito. 
+
+### 2.4 Funzionalità richieste:
+Il modulo deve:
+* Creare un grafo non orientato, dove c'è un arco tra i nodi ASNi e ASNj se e solo se la sequenza ASNi|ASNj è presente nei path AS
+* Mappare gli ASN in interi consecutivi tramite tabelle hash per evitare sprechi di memoria
+* Assegnare un peso ad ogni arco presente nel grafo: l'arco ASNi - ASNj ha peso x, dove x è la frequenza dell'apparizione della sequenza ASNi|ASNj o ASNj|ASNi nei path AS
+* Aggiornare in maniera dinamica il grafo, dunque ad ogni inserimento di nodi è necessario aggiornare la frequenza degli archi interessati
+* Individuare la componente connessa massimale all'interno del grafo
+
+### 2.5 Strutture dati, librerie e algoritmi necessari:
+* Tabella hash per la mappatura degli ASN
 * Lista di adiacenza per la costruzione del grafo
 * Struct personalizzata per associare destinazione e frequenza (peso) dell'arco
 * Ricerca BFS per l'individuazione della componente connessa massimale
 
-### 2.3 Funzioni implementate
-### 2.4 Interazioni con gli altri moduli
+### 2.6 Complessità attesa:
+Il tempo richiesto per la costruzione del grafo dovrebbe essere lineare rispetto alla dimensione dei vettori di input. Il tempo richiesto per la ricerca della componente connessa massimale dovrebbe essere lineare rispetto al numero dei nodi + il numero degli archi del grafo. 
+
+### 2.7 Casi limite:
+Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, input vettore singolo (nodo senza archi), frequenza degli archi troppo elevata (overflow, usare interi a 64 bit), componenti connesse massimali non uniche (in caso di pareggio selezionare la componente connessa la cui somma dei pesi degli archi è maggiore).
+
+### 2.8 Interazione con gli altri moduli:
+Il modulo riceve in input vettori provenienti dal modulo DataLoader e deve anche fornire informazioni al modulo di analisi quali numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo Solver.
 
 ## 3. Modulo di risoluzione (Solver)
 
 ### 3.1 Compiti principali del modulo
 
-* Ricevere due nodi bersagli di cui calcolare il minimax
+* Ricevere due nodi bersaglio di cui calcolare il minimax
 * Trovare il cammino minimax tra i due nodi e restituirne il valore
 * Contare parallelamente il numero di cammini ottimali (sempre secondo la logica minimax) tra i due nodi 
 
@@ -84,7 +107,7 @@ L'output di DataLoader sarà utilizzato dal modulo successivo (ASGraph) come inp
 ### 4.1 Compiti principali del modulo
 
 * Coordinare il flusso di esecuzione (parsing, cotruzione del grafo, ricerca e conteggio minimax paths,...)
-* Calcolare e stampare i dati strutturali della rete (numero di nodi, numero di archi, dimenzione della componente connessa massimale, distribuzione della frequenza degli archi)
+* Calcolare e stampare i dati strutturali della rete (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi)
 * Misurare la tempistica di esecuzione (totale e dei vari step)
 * Fornire un'interfaccia per la scelta dell'inserimento dei nodi sorgente-destinazione (manuale o randomica)
 * Stampare per ogni query il costo del cammino minimax e il numero di percorsi ottimi individuati
