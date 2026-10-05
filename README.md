@@ -95,12 +95,30 @@ Il modulo riceve in input vettori provenienti dal modulo DataLoader e deve anche
 * Trovare il cammino minimax tra i due nodi e restituirne il valore
 * Contare parallelamente il numero di cammini ottimali (sempre secondo la logica minimax) tra i due nodi 
 
-### 3.2 Strutture dati necessarie
+### 3.2 Input:
+Il modulo deve ricevere in input il codice di due AS dei quali si vuole calcolare peso e numero dei cammini minimax.
 
-* Utilizzo dell'algoritmo di Dijkstra modificato per la ricerca del cammino minimax
+### 3.3 Output:
+Il modulo dovrà restituire in output il peso del cammino minimax, quanti cammini ottimali ci sono tra il nodo ASNi e il nodo ASNj dati in input e la sequenza effettiva dei nodi presenti in uno dei cammini ottimali trovati.
 
-### 3.3 Funzioni implementate
-### 3.4 Interazioni con gli altri moduli
+### 3.4 Funzionalità richieste:
+Il modulo deve:
+* Trovare il path ottimale tra ASNi e ASNj dove il peso di un cammino è definito come il massimo peso tra i pesi degli archi attraversati dal cammino. Dunque vogliamo cercare il path tra ASNi e ASNj con il peso minore.
+* Contare il numero di path tra ASNi e ASNj che hanno tale peso (questo va fatto parallelamente alla ricerca del cammino ottimale).
+
+### 3.5 Strutture dati, librerie e algoritmi necessari:
+* Utilizzo dell'algoritmo di Dijkstra modificato: durante la ricerca i pesi degli archi non andranno sommati come nel caso classico, ma andrà conservato solo il massimo peso degli archi attraversati.
+* Coda di priorità per la ricerca con Dijkstra
+* Vettori dinamici per la memorizzazione delle distanze minimax, dei contatori dei cammini e dei padri (per memorizzare la strada percorsa).
+
+### 3.6 Complessità attesa:
+Il tempo richiesto per la ricerca del cammino ottimale è $O((V + E) \log V)$, dove $V$ è il numero di nodi ed $E$ il numero di archi esplorati. Poiché il conteggio del numero di cammini ottimali avviene parallelamente durante la fase di rilassamento degli archi, la complessità del conteggio è assorbita da quella della ricerca, mantenendo il tempo totale di esecuzione a $O((V + E) \log V)$
+
+### 3.7 Casi limite:
+Il modulo dovrà gestire i casi limite: input non validi (ASN non validi, ASN non presenti nel grafo), grafo vuoto, nodi sorgente e destinazione coincidenti (che devono restituire costo 0 e 1 cammino ottimale), nodi di input validi ma appartenenti a componenti connesse separate (che devono restituire l'assenza di percorsi), e il potenziale overflow matematico per il numero di cammini ottimali.
+
+### 3.8 Interazione con gli altri moduli:
+Il modulo deve accedere all'interfaccia di ASGraph per consultare il grafo e ricavare tutte le informazioni relative ad esso. Inoltre deve interagire con il modulo di analisi, al quale dovrà fornire l'output.
 
 ## 4. Modulo di analisi (General)
 
