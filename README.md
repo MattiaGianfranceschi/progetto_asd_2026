@@ -106,6 +106,19 @@ Il modulo deve:
 * Trovare il path ottimale tra ASNi e ASNj dove il peso di un cammino è definito come il massimo peso tra i pesi degli archi attraversati dal cammino. Dunque vogliamo cercare il path tra ASNi e ASNj con il peso minore.
 * Contare il numero di path tra ASNi e ASNj che hanno tale peso (questo va fatto parallelamente alla ricerca del cammino ottimale).
 
+### - Approfondimento sul conteggio di cammini ottimali:
+Nel conteggio si presenta un problema dovuto alla complessità attesa: contare il numero di cammini ottimali parallelamente alla ricerca in tempo lineare è impossibile e invece implementare un conteggio separato alla ricerca prevederebbe tempo esponenziale, se non fattoriale. L'algoritmo descritto nella specifica non conta TUTTI i cammini di peso minimo, ma rappresenta un limite inferiore. I motivi sono due:
+
+* Prefissi non ottimali: con il massimo (Dijkstra modificato), a differenza della somma (Dijkstra classico), un cammino ottimale può avere prefissi non ottimali, perché l'arco più pesante "copre" i pesi precedenti. Esempio: archi 1-2 (1), 1-3 (2), 2-4 (3), 3-4 (4), 4-5 (10). I cammini 1-2-4-5 e 1-3-4-5 pesano entrambi 10, ma il secondo non viene contato.
+
+* Parità di distanza: se due nodi hanno la stessa distanza minimax e sono collegati da un arco di peso pari a quella distanza, il risultato dipende dall'ordine di estrazione dalla coda.
+
+Per aggirare questo problema il modulo prevede due versioni dell'algoritmo:
+* Versione 1: conteggio classico parallelo alla ricerca. Questo restituisce un lower bound.
+* Versione 2: conteggio dei cammini minimax CON LUNGHEZZA MINORE (con lunghezza si intende il numero di nodi attraversati da quel cammino).
+
+Entrambi i dati verrano poi presentati nell'analisi sperimentale.
+
 ### 3.5 Strutture dati, librerie e algoritmi necessari:
 * Utilizzo dell'algoritmo di Dijkstra modificato: durante la ricerca i pesi degli archi non andranno sommati come nel caso classico, ma andrà conservato solo il massimo peso degli archi attraversati.
 * Coda di priorità per la ricerca con Dijkstra
