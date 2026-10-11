@@ -152,18 +152,18 @@ Il modulo deve ricevere in input:
 * una o potenzialmente più coppie di ASN dei nodi su cui svolgere l'analisi
 
 ### 4.3 Output:
-Il modulo dovrà restituire in output un interfaccia di accesso ai dati dell'analisi sperimentale.
+Il modulo dovrà restituire in output un'interfaccia di accesso ai dati dell'analisi sperimentale.
 
 ### 4.4 Funzionalità richieste:
 Il modulo deve:
-* Gestire input e output
-* Chiamare DataLoader passandogli il file .bz2
-* Chiamare ASGraph passandogli l'output di DataLoader, vettore per vettore
-* Una volta finito di costruire il grafo, chiamare Solver passandogli i due ASN in input
-* Raccogliere tutti i dati provenienti da ASGraph e Solver (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi,il peso del cammino minimax ottimale, lower bound del numero di cammini minimax totali, il numero esatto dei cammini minimax con lunghezza minima, la sequenza effettiva dei nodi di uno dei cammini ottimali)
-* Calcolare il tempo di esecuzione di ogni modulo e di tutto il processo
-* Fornire una scelta per l'inserimento dei nodi su cui effettuare l'analisi, sia manuale (inseriti dall'utente) sia randomico
-* Fornire un interfaccia per l'utente da cui poter gestire tutta l'analisi
+* Gestire input e output.
+* Chiamare DataLoader passandogli il file .bz2.
+* Chiamare ASGraph passandogli l'output di DataLoader, vettore per vettore.
+* Una volta finito di costruire il grafo, chiamare Solver passandogli i due ASN in input.
+* Raccogliere tutti i dati provenienti da ASGraph e Solver (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi,il peso del cammino minimax ottimale, lower bound del numero di cammini minimax totali, il numero esatto dei cammini minimax con lunghezza minima, la sequenza effettiva dei nodi di uno dei cammini ottimali).
+* Calcolare il tempo di esecuzione di ogni modulo e di tutto il processo.
+* Fornire una scelta per l'inserimento dei nodi su cui effettuare l'analisi, sia manuale (inseriti dall'utente) sia randomico.
+* Fornire un'interfaccia per l'utente da cui poter gestire tutta l'analisi.
 
 ### - Approfondimento sulla chiamata e interfaccia di General:
 Dato che General verrà chiamato dal main, esso dovrà fornire un interfaccia per l'utente. Il main controlla se l'utente ha avviato il programma fornendo un file (ad esempio digitando nel terminale ./ASGraph_Solver dataset.bz2). Se il file è presente, lo passa direttamente a General, che avvia il caricamento. Se l'utente lancia il programma "a vuoto" (solo ./ASGraph_Solver), General dovrà rilevare l'assenza del parametro e attivare la modalità interattiva, stampando a schermo una richiesta come: "Nessun dataset rilevato. Inserisci il percorso del file .bz2: ", richiedendo quindi all'utente di inserire un percorso file nel quale si trova il file .bz2.
@@ -174,16 +174,29 @@ Per quanto riguarda la gestione dell'analisi, l'interfaccia di General dovrà pr
 * Un'opzione di scelta per l'inserimento dei due ASN (come detto prima: manuale e randomica)
 * Un menù di accesso a tutti i dati raccolti da ASGraph e Solver
 * L'opzione di avviare un'altra analisi sullo stesso grafo
-* L'opzione di aggiungere o rimuovere nodi manualmente
+* L'opzione di aggiungere nodi manualmente
 * L'opzione di caricare un altro file .bz2 per la costruzione di un nuovo grafo oppure per l'aggiunta dei nodi del nuovo file al vecchio grafo (nel secondo caso General comanderà a ASGraph di invalidare la cache della componente connessa e delle statistiche, forzandone il ricalcolo)
 * L'opzione per esportare le statistiche raccolte (distribuzione delle frequenze degli archi, tempi di esecuzione, costi dei cammini, eccetera) in un file .csv
 * L'opzione per l'esecuzione di N query casuali: l'utente inserisce (ad esempio) 1000, e il modulo estrae 1000 coppie, esegue il Solver per ciascuna, calcola il tempo medio di esecuzione e salva i risultati
 * L'opzione per formattare e stampare a video il tracciato effettivo del cammino ottimale trovato dal Solver (es. AS1239 -> AS456 -> AS789), per dare un riscontro visivo diretto della rotta calcolata
 
 ### 4.5 Strutture dati, librerie e algoritmi necessari:
+* Libreria chrono per calcolare i tempi di esecuzione in millisecondi/microsecondi.
+* Libreria random per estrarre in modo statisticamente uniforme gli indici da passare al Solver durante i test automatizzati.
+* Libreria fstream per generare e scrivere i risultati nei file .csv
+* Librerie iostream e limits per la gestione sicura dell'input da tastiera: permettono di utilizzare std::cin.clear() e std::cin.ignore() per resettare lo stato di errore e svuotare il buffer quando l'utente inserisce tipi di dato sbalgliati (es. lettere al posto di numeri), prevenendo loop infiniti del terminale.
+* Variabili std::string per catturare l'input da tastiera e struct/vettori di supporto temporanei per immagazzinare i risultati delle esecuzioni in batch prima di scriverli su file
 
 ### 4.6 Complessità attesa:
+La complessità di General dipende esclusivamente da cosa l'utente decide di chiamare:
+* Gestione Menù e I/O: $O(1)$ per le operazioni di stampa e navigazione a schermo.
+* Query Singola: la complessità è dominata da quella del Solver, ovvero $O((V+E)\log V)$.
+* Esecuzione in Batch (N query): la complessità temporale sarà $O(N \cdot ((V+E)\log V))$, dove $N$ è il numero di esecuzioni casuali richieste dall'utente.
 
 ### 4.7 Casi limite:
+* Input utente non valido: il modulo deve gestire l'inserimento in input di lettere invece di numeri (ripulendo il buffer di input e riproponendo la richiesta senza crashare), di ASN non accettabili o di ASN non presenti nel grafo, catturando l'errore e avvisando l'utente.
+* Violazione della sequenzialità (nel caso di esecuzione manuale dei moduli): il modulo deve non permettere i tentativi di avviare il Solver quando la memoria di ASGraph è vuota o i  tentativi di lanciare l'Analisi prima di aver caricato un dataset.
+* Estrazione casuale isolata: i nodi estratti randomicamente non devono essere "estratti a vuoto" (numeri interi generici fino a 4 miliardi), ma vincolati agli ID validi di ASGraph. Inoltre, per evitare che test automatizzati massicci restituiscano sempre "nessun cammino trovato", la randomizzazione dovrebbe idealmente pescare solo nodi appartenenti alla componente connessa massimale.
 
 ### 4.8 Interazione con gli altri moduli:
+Il modulo interagisce con tutti gli altri, istanziando e distruggendo gli oggetti di DataLoader, ASGraph e Solver, passando gli input e output tra di loro e interrogando i metodi const in sola lettura di ogni modulo per recuperare i dati e impacchettarli nei report finali.
