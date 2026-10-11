@@ -26,8 +26,8 @@ Il modulo deve restituire in output vettori dinamici contenenti i cammini AS.
 Il modulo deve:
 * Decomprimere i file .bz2 in input.
 * Compiere il parsing delle stringhe di testo, individuando prima il blocco dei cammini AS e poi utilizzando la spaziatura e punteggiatura per isolare ciascun codice AS.
-* Eliminare evnetuali self-loop, ovvero ripetizioni.
-* Inserire i codici AS in un vettore dinamica che rappresenterà l'output del modulo.
+* Eliminare eventuali self-loop, ovvero ripetizioni.
+* Inserire i codici AS in un vettori dinamici che rappresenteranno l'output del modulo.
 
 Ciascuna di queste operazioni dovrà essere svolta riga per riga per evitare problemi di memoria, dunque il flow di lavoro sarà: decompressione di una riga, parsing, inserimento in vettore dinamico, restituzione del vettore al modulo successivo, ripetere da capo.
 
@@ -82,7 +82,7 @@ Il modulo deve:
 Il tempo richiesto per la costruzione del grafo dovrebbe essere lineare rispetto alla dimensione dei vettori di input. Il tempo richiesto per la ricerca della componente connessa massimale dovrebbe essere lineare rispetto al numero dei nodi + il numero degli archi del grafo. 
 
 ### 2.7 Casi limite:
-Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, input vettore singolo (nodo senza archi), frequenza degli archi troppo elevata (overflow, usare interi a 64 bit), componenti connesse massimali non uniche (in caso di pareggio selezionare la componente connessa la cui somma dei pesi degli archi è maggiore).
+Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, input vettore singolo (nodo senza archi), frequenza degli archi troppo elevata (overflow, usare interi a 64 bit), componenti connesse massimali non uniche (in caso di pareggio selezionare la componente connessa la cui somma dei pesi degli archi è maggiore ed a ulteriore parità di nodi e di somma dei pesi, si seleziona la componente che contiene il nodo con l'ASN originale numericamente più basso).
 
 ### 2.8 Interazione con gli altri moduli:
 Il modulo riceve in input vettori provenienti dal modulo DataLoader e deve anche fornire informazioni al modulo di analisi quali numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo Solver.
@@ -99,7 +99,11 @@ Il modulo riceve in input vettori provenienti dal modulo DataLoader e deve anche
 Il modulo deve ricevere in input il codice di due AS dei quali si vuole calcolare peso e numero dei cammini minimax.
 
 ### 3.3 Output:
-Il modulo dovrà restituire in output il peso del cammino minimax, quanti cammini ottimali ci sono tra il nodo ASNi e il nodo ASNj dati in input e la sequenza effettiva dei nodi presenti in uno dei cammini ottimali trovati.
+Il modulo dovrà restituire in output: 
+* Il peso del cammino minimax ottimale
+* Lower bound del numero di cammini minimax totali
+* Il numero esatto dei cammini minimax con lunghezza minima
+* La sequenza effettiva dei nodi di uno dei cammini ottimali
 
 ### 3.4 Funzionalità richieste:
 Il modulo deve:
@@ -115,7 +119,7 @@ Nel conteggio si presenta un problema dovuto alla complessità attesa: contare i
 
 Per aggirare questo problema il modulo prevede due versioni dell'algoritmo:
 * Versione 1: conteggio classico parallelo alla ricerca. Questo restituisce un lower bound.
-* Versione 2: conteggio dei cammini minimax CON LUNGHEZZA MINORE (con lunghezza si intende il numero di nodi attraversati da quel cammino).
+* Versione 2: conteggio dei cammini minimax CON LUNGHEZZA MINIMA (con lunghezza si intende il numero di nodi attraversati da quel cammino).
 
 Entrambi i dati verrano poi presentati nell'analisi sperimentale.
 
@@ -137,12 +141,49 @@ Il modulo deve accedere all'interfaccia di ASGraph per consultare il grafo e ric
 
 ### 4.1 Compiti principali del modulo
 
-* Coordinare il flusso di esecuzione (parsing, cotruzione del grafo, ricerca e conteggio minimax paths,...)
-* Calcolare e stampare i dati strutturali della rete (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi)
+* Coordinare il flusso di esecuzione (parsing, cotruzione del grafo, ricerca e conteggio cammini minimax,...)
+* Raccogliere i dati strutturali della rete (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi)
 * Misurare la tempistica di esecuzione (totale e dei vari step)
-* Fornire un'interfaccia per la scelta dell'inserimento dei nodi sorgente-destinazione (manuale o randomica)
-* Stampare per ogni query il costo del cammino minimax e il numero di percorsi ottimi individuati
+* Raccogliere per ogni query i dati: costo del cammino minimax e numero di percorsi ottimi individuati
 
-### 4.2 Strutture dati necessarie
-### 4.3 Funzioni implementate
-### 4.4 Interazioni con gli altri moduli
+### 4.2 Input:
+Il modulo deve ricevere in input:
+* uno o potenzialmente più file .bz2 dei path AS
+* una o potenzialmente più coppie di ASN dei nodi su cui svolgere l'analisi
+
+### 4.3 Output:
+Il modulo dovrà restituire in output un interfaccia di accesso ai dati dell'analisi sperimentale.
+
+### 4.4 Funzionalità richieste:
+Il modulo deve:
+* Gestire input e output
+* Chiamare DataLoader passandogli il file .bz2
+* Chiamare ASGraph passandogli l'output di DataLoader, vettore per vettore
+* Una volta finito di costruire il grafo, chiamare Solver passandogli i due ASN in input
+* Raccogliere tutti i dati provenienti da ASGraph e Solver (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi,il peso del cammino minimax ottimale, lower bound del numero di cammini minimax totali, il numero esatto dei cammini minimax con lunghezza minima, la sequenza effettiva dei nodi di uno dei cammini ottimali)
+* Calcolare il tempo di esecuzione di ogni modulo e di tutto il processo
+* Fornire una scelta per l'inserimento dei nodi su cui effettuare l'analisi, sia manuale (inseriti dall'utente) sia randomico
+* Fornire un interfaccia per l'utente da cui poter gestire tutta l'analisi
+
+### - Approfondimento sulla chiamata e interfaccia di General:
+Dato che General verrà chiamato dal main, esso dovrà fornire un interfaccia per l'utente. Il main controlla se l'utente ha avviato il programma fornendo un file (ad esempio digitando nel terminale ./ASGraph_Solver dataset.bz2). Se il file è presente, lo passa direttamente a General, che avvia il caricamento. Se l'utente lancia il programma "a vuoto" (solo ./ASGraph_Solver), General dovrà rilevare l'assenza del parametro e attivare la modalità interattiva, stampando a schermo una richiesta come: "Nessun dataset rilevato. Inserisci il percorso del file .bz2: ", richiedendo quindi all'utente di inserire un percorso file nel quale si trova il file .bz2.
+Per quanto riguarda la gestione dell'analisi, l'interfaccia di General dovrà prevedere:
+* Come abbiamo appena detto, un'opzione per inserire il file manualmente, se non è già stato inserito
+* Un menù di scelta per il lancio dei vari moduli (un'opzione per la gestione automatica, ovvero l'esecuzione di tutti i moduli in sequenza e un'opzione per eseguire i moduli separatamente, ovviamente vincolando l'esecuzione dei moduli in ordine temporale, non è possibile per esempio eseguire Solver prima della prima esecuzione di DataLoader)
+* L'accesso ai dati raccolti riguardanti le tempistiche di esecuzione
+* Un'opzione di scelta per l'inserimento dei due ASN (come detto prima: manuale e randomica)
+* Un menù di accesso a tutti i dati raccolti da ASGraph e Solver
+* L'opzione di avviare un'altra analisi sullo stesso grafo
+* L'opzione di aggiungere o rimuovere nodi manualmente
+* L'opzione di caricare un altro file .bz2 per la costruzione di un nuovo grafo oppure per l'aggiunta dei nodi del nuovo file al vecchio grafo (nel secondo caso General comanderà a ASGraph di invalidare la cache della componente connessa e delle statistiche, forzandone il ricalcolo)
+* L'opzione per esportare le statistiche raccolte (distribuzione delle frequenze degli archi, tempi di esecuzione, costi dei cammini, eccetera) in un file .csv
+* L'opzione per l'esecuzione di N query casuali: l'utente inserisce (ad esempio) 1000, e il modulo estrae 1000 coppie, esegue il Solver per ciascuna, calcola il tempo medio di esecuzione e salva i risultati
+* L'opzione per formattare e stampare a video il tracciato effettivo del cammino ottimale trovato dal Solver (es. AS1239 -> AS456 -> AS789), per dare un riscontro visivo diretto della rotta calcolata
+
+### 4.5 Strutture dati, librerie e algoritmi necessari:
+
+### 4.6 Complessità attesa:
+
+### 4.7 Casi limite:
+
+### 4.8 Interazione con gli altri moduli:
