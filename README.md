@@ -166,7 +166,109 @@ Il modulo deve ricevere in input:
 * una o potenzialmente più coppie di ASN dei nodi su cui svolgere l'analisi
 
 ### 4.3 Output:
-Il modulo dovrà restituire in output un'interfaccia di accesso ai dati dell'analisi sperimentale.
+Il modulo dovrà restituire in output un'interfaccia di accesso ai dati dell'analisi sperimentale. In particolare, l'interfaccia da linea di comando dovrà essere così composta:
+
+\- ASGraph Solver - analisi sperimentale sulla topologia delle reti di Autonomous Systems
+
+Dataset indicato: *nome file dataset* \
+Caricamento completato: *nome file dataset, se il caricamento è andato a buon fine* \
+Cammini letti: *n cammini letti* (righe scartate: *n righe scartate*)
+
+\- Analisi Strutturale del grafo -
+
+Numero nodi: *numero nodi* \
+Numero archi: *numero archi* \
+Tempi: DataLoader: *tempo di esecuzione*, ASGraph: *tempo di esecuzione*, totale *tempo di esecuzione*
+
+\- Menu di scelta -
+
+1) Nuova query sul grafo corrente
+2) N query randomiche sul grafo corrente
+3) Carica un altro file `.bz2`
+4) Esporta le statistiche
+0) Esci
+
+In particolare:
+* l'opzione 1. dovrà a sua volta proporre le opzioni:
+
+    1) Inserimento manuale degli ASN
+    2) Inserimento randomico degli ASN (dalla componente connessa massimale)
+    0) Annulla
+
+    Una volta terminata l'esecuzione dovranno essere visualizzati:
+
+    \- Analisi della Query -
+
+    Coppia estratta: ASNi e ASNj \
+    Query tra ASNi e ASNj (casuale)
+
+    Peso del cammino minimax: *n1* \
+    Numero cammini minimax (limite inferiore): *n2* \
+    Numero cammini minimax piu' corti (conteggio esatto): *n3* \
+    Lunghezza dei cammini minimax più corti: *n4* nodi \
+    Tracciato di uno dei cammini minimax ottimali: ASNi -> ASNi2 -> ... -> ASNj \
+    Tempo Solver: *tempo di esecuzione* \
+    I risultati sono salvati in memoria: usa l'esportazione per scriverli su file.
+
+* l'opzione 2. dovrà chiedere in input il numero di query da effettuare.
+
+    Una volta terminata l'esecuzione dovranno essere visualizzati:
+
+    \- Analisi del batch -
+
+    Query eseguite: n1 (a buon fine: n2) \
+    Seme del generatore casuale: seed \
+    Tempo medio per query: t1 (minimo t2, massimo t3, totale t4) \
+    Peso minimax medio: n3, lunghezza media dei cammini piu' corti: n4 \
+    I risultati sono salvati in memoria: usa l'esportazione per scriverli su file.     
+
+* l'opzione 3. dovrà chiedere il percorso file del nuovo dataset e poi, dopo che il grafo è stato aggiornato, riproporre l'interfaccia da capo.
+
+* l'opzione 4. dovrà chiedere all'utente il nome con cui salvare i file in esportazione: *name*. Successivamente creare 4 file:
+    * *name*_summary.txt con struttura:
+    
+        dataset_files: *files di dataset caricati* \
+        paths_read: *numero di cammini letti* \
+        paths_added: *numero di cammini aggiunti al grafo* \
+        paths_rejected: *numero di cammini rifiutati* \
+        lines_skipped: *numero di righe del dataset saltate* \
+        nodes: *numero di nodi nel grafo* \
+        edges: *numero di archi nel grafo* \
+        largest_component_nodes: *numero di nodi nella componente connessa massimale* \
+        largest_component_edges: *numero di archi nella componente connessa massimale* \
+        queries_single: *numero di queries singole avviate* \
+        queries_batch: *numero di batches di queries avviati*
+
+    * *name*_graph.txt che rappresenta il grafo nella sua interezza. Deve avere il seguente formato per ogni riga:
+
+        `ASNi | ASNj | peso dell'arco ASNi-ASNj`
+    
+    * *name*_queries.txt con struttura:
+
+        \- Query numero *k* - (per la k-esima query singola)
+
+        Origine: *random/manuale* \
+        Source: *ASNi* \
+        Target: *ASNj* \
+        Esito: *positivo/errore* \
+        Peso cammino minimax ottimale: *peso* \
+        Numero cammini minimax ottimali (limite inferiore): *numero* \
+        Numero cammini minimax ottimali più corti: *numero* \
+        Path di un cammino minimax ottimale più corto: *ASNi -> ... -> ASNj*
+
+        \- Batch numero *l* - (per la l-esima batch di queries)
+        
+        Query eseguite: *numero* (a buon fine: *numero*) \
+        Seme del generatore casuale: *seed*
+        Tempo medio per query: *tempo*
+        Tempo minimo: *tempo*
+        Tempo massimo: *tempo*
+        Tempo totale: *tempo* 
+        Peso minimax medio: n3, lunghezza media dei cammini piu' corti: n4 \
+
+
+
+
 
 ### 4.4 Funzionalità richieste:
 Il modulo deve:
