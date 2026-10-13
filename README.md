@@ -202,13 +202,12 @@ In particolare:
     Coppia estratta: ASNi e ASNj \
     Query tra ASNi e ASNj (casuale)
 
-    Peso del cammino minimax: *n1* \
-    Numero cammini minimax (limite inferiore): *n2* \
-    Numero cammini minimax piu' corti (conteggio esatto): *n3* \
-    Lunghezza dei cammini minimax più corti: *n4* nodi \
+    Peso del cammino minimax \
+    Numero cammini minimax (limite inferiore) \
+    Numero cammini minimax piu' corti (conteggio esatto) \
+    Lunghezza dei cammini minimax più corti \
     Tracciato di uno dei cammini minimax ottimali: ASNi -> ASNi2 -> ... -> ASNj \
-    Tempo Solver: *tempo di esecuzione* \
-    I risultati sono salvati in memoria: usa l'esportazione per scriverli su file.
+    Tempo di esecuzione del Solver \
 
 * l'opzione 2. dovrà chiedere in input il numero di query da effettuare.
 
@@ -216,11 +215,14 @@ In particolare:
 
     \- Analisi del batch -
 
-    Query eseguite: n1 (a buon fine: n2) \
-    Seme del generatore casuale: seed \
-    Tempo medio per query: t1 (minimo t2, massimo t3, totale t4) \
-    Peso minimax medio: n3, lunghezza media dei cammini piu' corti: n4 \
-    I risultati sono salvati in memoria: usa l'esportazione per scriverli su file.     
+    Query eseguite \
+    Seme del generatore casuale \
+    Tempo medio per query \
+    Tempo minimo \
+    Tempo massimo \
+    Tempo totale \
+    Peso minimax medio \
+    Lunghezza media dei cammini piu' corti \   
 
 * l'opzione 3. dovrà chiedere il percorso file del nuovo dataset e poi, dopo che il grafo è stato aggiornato, riproporre l'interfaccia da capo.
 
@@ -247,28 +249,33 @@ In particolare:
 
         \- Query numero *k* - (per la k-esima query singola)
 
-        Origine: *random/manuale* \
+        Origine dei nodi: (*random/manuale*) \
         Source: *ASNi* \
         Target: *ASNj* \
-        Esito: *positivo/errore* \
-        Peso cammino minimax ottimale: *peso* \
-        Numero cammini minimax ottimali (limite inferiore): *numero* \
-        Numero cammini minimax ottimali più corti: *numero* \
+        Esito della query: (*positivo/errore*) \
+        Peso cammino minimax ottimale: \
+        Numero cammini minimax ottimali (limite inferiore): \
+        Numero cammini minimax ottimali più corti: \
         Path di un cammino minimax ottimale più corto: *ASNi -> ... -> ASNj*
 
         \- Batch numero *l* - (per la l-esima batch di queries)
         
-        Query eseguite: *numero* (a buon fine: *numero*) \
-        Seme del generatore casuale: *seed*
-        Tempo medio per query: *tempo*
-        Tempo minimo: *tempo*
-        Tempo massimo: *tempo*
-        Tempo totale: *tempo* 
-        Peso minimax medio: n3, lunghezza media dei cammini piu' corti: n4 \
-
-
-
-
+        Query eseguite: \
+        Query andate a buon fine: \
+        Seme del generatore casuale: \
+        Tempo medio per query: \
+        Tempo minimo: \
+        Tempo massimo: \
+        Tempo totale: \
+        Peso minimax medio: \
+        Lunghezza media dei cammini piu' corti:
+    
+    * *name*_timings.txt con struttura:
+        
+        Tempo di esecuzione di DataLoader:
+        Tempo di esecuzione di ASGraph:
+        Tempo di esecuzione di Solver nella query numero *i*:
+        Tempo totale di esecuzione:
 
 ### 4.4 Funzionalità richieste:
 Il modulo deve:
@@ -284,18 +291,7 @@ Il modulo deve:
 
 ### - Approfondimento sulla chiamata e sull'interfaccia di General:
 Dato che **General** verrà chiamato dal main, esso dovrà fornire un interfaccia per l'utente. Il main controlla se l'utente ha avviato il programma fornendo un file (ad esempio digitando nel terminale `./ASGraph_Solver dataset.bz2`). Se il file è presente, lo passa direttamente a **General**, che avvia il caricamento. Se l'utente lancia il programma "a vuoto" (solo `./ASGraph_Solver`), **General** dovrà rilevare l'assenza del parametro e attivare la modalità interattiva, stampando a schermo una richiesta come: "`Nessun dataset rilevato. Inserisci il percorso del file .bz2: `", richiedendo quindi all'utente di inserire un percorso file nel quale si trova il file `.bz2`.
-Per quanto riguarda la gestione dell'analisi, l'interfaccia di **General** dovrà prevedere:
-* Come abbiamo appena detto, un'opzione per inserire il file manualmente, se non è già stato inserito
-* Un menù di scelta per il lancio dei vari moduli (un'opzione per la gestione automatica, ovvero l'esecuzione di tutti i moduli in sequenza e un'opzione per eseguire i moduli separatamente, ovviamente vincolando l'esecuzione dei moduli in ordine temporale, non è possibile per esempio eseguire **Solver** prima della prima esecuzione di **DataLoader**)
-* L'accesso ai dati raccolti riguardanti le tempistiche di esecuzione
-* Un'opzione di scelta per l'inserimento dei due ASN (come detto prima: manuale e randomica)
-* Un menù di accesso a tutti i dati raccolti da **ASGraph** e **Solver**
-* L'opzione di avviare un'altra analisi sullo stesso grafo
-* L'opzione di aggiungere nodi manualmente
-* L'opzione di caricare un altro file `.bz2` per la costruzione di un nuovo grafo oppure per l'aggiunta dei nodi del nuovo file al vecchio grafo (nel secondo caso General comanderà a **ASGraph** di invalidare la cache della componente connessa e delle statistiche, forzandone il ricalcolo)
-* L'opzione per esportare le statistiche raccolte (distribuzione delle frequenze degli archi, tempi di esecuzione, costi dei cammini, eccetera) in un file `.csv`
-* L'opzione per l'esecuzione di N query casuali: l'utente inserisce (ad esempio) 1000, e il modulo estrae 1000 coppie, esegue il **Solver** per ciascuna, calcola il tempo medio di esecuzione e salva i risultati
-* L'opzione per formattare e stampare a video il tracciato effettivo del cammino ottimale trovato dal **Solver** (es. `AS1239 -> AS456 -> AS789`), per dare un riscontro visivo diretto della rotta calcolata
+Per quanto riguarda la gestione dell'analisi, l'interfaccia di **General** dovrà prevedere, come abbiamo appena detto, un'opzione per inserire il file manualmente, se non è già stato inserito e un'interfaccia da linea di comando descritta nella sezione 4.3.
 
 ### 4.5 Strutture dati, librerie e algoritmi necessari:
 * Libreria `chrono` per calcolare i tempi di esecuzione in millisecondi/microsecondi.
