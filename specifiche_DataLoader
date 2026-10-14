@@ -1,0 +1,61 @@
+# Specifiche Modulo DataLoader
+
+## 1. Tipi di Dato ed Eccezioni
+
+### `ASN`
+* **Firma:** `using ASN = std::uint32_t;`
+* **Scopo:** Rappresenta l'identificativo numerico univoco di un Autonomous System.
+* **Dettagli:** Utilizza un intero senza segno a 32 bit per supportare nativamente l'estensione moderna degli AS number, prevenendo l'overflow rispetto ai vecchi ASN a 16 bit.
+
+### `ASPath`
+* **Firma:** `using ASPath = std::vector<ASN>;`
+* **Scopo:** Rappresenta un singolo cammino di rete.
+* **Dettagli:** Garantisce la conservazione dell'ordine di attraversamento. L'assenza di ripetizioni consecutive (self-loop) non è insita nel tipo di dato, ma è garantita dalla logica della funzione `parseLine` che lo popola.
+
+### `DataLoaderError`
+* **Firma:** `class DataLoaderError : public std::runtime_error`
+* **Scopo:** Eccezione custom per gestire e identificare in modo univoco le anomalie sollevate dal modulo `DataLoader`.
+* **Dettagli:** Eredita da `std::runtime_error` per permettere l'estrazione del messaggio di errore testuale tramite il metodo standard `.what()`.
+
+## 2. Funzioni Helper (Namespace anonimo)
+
+### `bzMessage`
+* **Firma:** `std::string bzMessage(int code)`
+* **Scopo:** Traduce i codici di errore numerici restituiti dalla libreria `libbz2` in stringhe di testo descrittive in italiano.
+* **Input:** `code` (`int`): Il codice di stato restituito da una funzione `BZ2_*`.
+* **Output:** Una `std::string` contenente la spiegazione dell'errore.
+* **Eccezioni:** Nessuna.
+* **Effetti collaterali:** Nessuno.
+* **Complessità Computazionale:** $O(1)$.
+
+### `parseASN`
+* **Firma:** `bool parseASN(const std::string& token, ASN& out)`
+* **Scopo:** Converte in modo sicuro una stringa di testo (un token) nel rispettivo intero a 32 bit, bloccando lettere o valori fuori scala (come gli `AS_SET`).
+* **Input:**
+    * `token` (`const std::string&`): La porzione di testo da convertire.
+    * `out` (`ASN&`): Riferimento alla variabile in cui salvare il risultato in caso di successo.
+* **Output:** Restituisce `true` se la conversione va a buon fine, `false` se la stringa contiene caratteri non numerici o supera il limite dei 32 bit.
+* **Eccezioni:** Nessuna.
+* **Effetti collaterali:** Sovrascrive il valore di `out` solo se la conversione ha successo.
+* **Complessità Computazionale:** $O(1)$ (interrompe l'analisi se la stringa supera i 10 caratteri).
+
+## 3. Classe `DataLoader` - Metodi Pubblici
+
+### Costruttore `DataLoader`
+* **Firma:** `explicit DataLoader(const std::string& filename, std::size_t pathBlock = 1, char asSeparator = '|');`
+* **Scopo:** Apre il file in lettura binaria, ne verifica la consistenza minima (non vuoto) e inizializza il motore di decompressione `libbz2`.
+* **Input:**
+    * `filename` (`const std::string&`): Percorso del file `.bz2`.
+    * `pathBlock` (`std::size_t`): Indice del blocco contenente il cammino AS (default `1`).
+    * `asSeparator` (`char`): Carattere delimitatore tra gli ASN (default `'|'`).
+* **Output:** Oggetto inizializzato.
+* **Eccezioni:** Lancia `DataLoaderError` se il file è inesistente, non ha i permessi, è vuoto (0 byte) o se `libbz2` fallisce l'apertura.
+* **Effetti collaterali:** Apre un descrittore di file (`FILE*`) verso il sistema operativo e alloca 64 KiB per il `buffer_` interno.
+* **Complessità Computazionale:** $O(1)$.
+
+### Distruttore `~DataLoader`
+* **Firma:** `~DataLoader();`
+* **Scopo:** Rilascia le risorse di memoria e i descrittori di file allocati.
+* **Input / Output:** Nessuno.
+* **Eccezioni:** Nessuna.
+* **Effetti collaterali:** Chiude in modo sicuro lo stream `bz_` e il `file_`.

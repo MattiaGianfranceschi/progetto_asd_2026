@@ -7,34 +7,27 @@ Il progetto mira all'analisi e alla manipolazione della topologia di rete per la
 
 ## 1. Modulo lettura ed interpretazione dei dati (DataLoader)
 
-### 1.1 Compiti principali del modulo
-
-* Leggere i file in input
-* Decomprimere i file con estensione `.bz2`
-* Isolare la stringa di path che ci interessa
-* Eliminare eventuali duplicati ridondanti (`1234 1234 5678 -> 1234 5678`)
-* Utilizzare spazi e punteggiatura ( `|` ) tra gli AS per creare un vettore che identifica una path
-* Restituire la sequenza pulita come output finale
-
-### 1.2 Input:
+### 1.1 Input:
 Il modulo deve ricevere in input file `.bz2` contenenti dataset dei path di AS.
 
-### 1.3 Output:
-Il modulo deve restituire in output vettori dinamici contenenti i cammini AS.
+### 1.2 Output:
+Il modulo deve restituire in output vettori dinamici contenenti i cammini AS presenti nel file in input.
 
-### 1.4 Funzionalità richieste:
+### 1.3 Funzionalità richieste:
 Il modulo deve:
 * Decomprimere i file `.bz2` in input.
-* Compiere il parsing delle stringhe di testo, individuando prima il blocco dei cammini AS e poi utilizzando la spaziatura e punteggiatura per isolare ciascun codice AS.
-* Eliminare eventuali *self-loop*, ovvero ripetizioni.
-* Inserire i codici AS in vettori dinamici che rappresenteranno l'output del modulo.
+* Compiere il parsing delle stringhe di testo, individuando prima il blocco dei cammini AS e poi utilizzando la punteggiatura per isolare ciascun ASN (Autonomous System Number). Se una riga è dunque della forma: \
+`routeviews/routeviews|5 1849|702|701|3479 141.165.0.0/16 i 158.43.133.48` \
+sarà necessario isolare prima il blocco `1849|702|701|3479` e poi utilizzare `|` per separare ciascun ASN.
+* Eliminare eventuali *self-loop*, ovvero ripetizioni consecutive dello stesso ASN.
+* Inserire gli ASN in vettori dinamici che rappresenteranno l'output del modulo.
 
 Ciascuna di queste operazioni dovrà essere svolta riga per riga per evitare problemi di memoria, dunque il flow di lavoro sarà: decompressione di una riga, parsing, inserimento in vettore dinamico, restituzione del vettore al modulo successivo, ripetere da capo.
 
 ### 1.5 Strutture dati, librerie e algoritmi necessari:
-* Vettori dinamici
-* Libreria `libbz2`
-* Librerie `string` e `sstream` per il parsing
+* Vettori dinamici.
+* Libreria `libbz2`.
+* Librerie `string` e `sstream` per il parsing.
 
 ### 1.6 Complessità attesa:
 Il tempo richiesto dovrebbe essere lineare rispetto alla dimensione del file di input.
@@ -45,87 +38,61 @@ Il modulo deve restituire errore se il file in input è vuoto, o se non è prese
 ### 1.8 Interazioni con gli altri moduli:
 L'output di **DataLoader** sarà utilizzato dal modulo successivo (**ASGraph**) come input.
 
-## Dettagli di implementazione di DataLoader
+### Dettagli di implementazione di DataLoader
 
-### (a) Tipi di dato ed eccezioni:
-
-#### `ASN` (Alias di tipo)
-- **Firma:** `using ASN = std::uint32_t;`
-- **Scopo:** Rappresenta l'identificativo numerico univoco di un Autonomous System. Utilizza 32 bit per supportare l'estensione moderna degli AS number, prevenendo l'overflow.
-
-#### `ASPath` (Alias di tipo)
-- **Firma:** `using ASPath = std::vector<ASN>;`
-- **Scopo:** Rappresenta un singolo cammino di rete. Garantisce la conservazione dell'ordine di attraversamento e, grazie alla logica di popolamento di `DataLoader`, non contiene ripetizioni consecutive (self-loop).
-
-#### `DataLoaderError` (Classe d'eccezione)
-- **Firma:** `class DataLoaderError : public std::runtime_error`
-- **Scopo:** Gestisce e identifica in modo univoco le anomalie sollevate durante il ciclo di vita del modulo (es. file mancanti, troncati, permessi negati o archivi `.bz2` corrotti).
-
-
+I dettagli di implementazione di DataLoader sono riportati nel file *specifiche_DataLoader*
 
 ## 2. Modulo di gestione del grafo (ASGraph)
 
-### 2.1 Compiti principali del modulo
-
-* Ricezione e costruzione dinamica del grafo AS partendo dalle sequenze fornite da **DataLoader**
-* Mappatura degli ASN (*Autonomous System Number*) tramite tabelle hash
-* Aggiornamento delle frequenze degli archi
-* Individuazione della componente connessa massimale
-
-### 2.2 Input:
+### 2.1 Input:
 Il modulo deve ricevere in input vettori dinamici di ASN forniti da **DataLoader**
 
-### 2.3 Output:
+### 2.2 Output:
 Il modulo dovrà restituire in output un Grafo, con interfaccia interrogabile dagli altri moduli e che contiente tutte le informazioni definite di seguito. 
 
-### 2.4 Funzionalità richieste:
+### 2.3 Funzionalità richieste:
 Il modulo deve:
-* Creare un grafo non orientato, dove c'è un arco tra i nodi `ASNi` e `ASNj` se e solo se la sequenza `ASNi|ASNj` è presente nei path AS
-* Mappare gli ASN in interi consecutivi tramite tabelle hash per evitare sprechi di memoria
+* Mappare gli ASN in input in interi consecutivi tramite tabelle hash per evitare sprechi di memoria.
+* Creare un grafo non orientato tramite liste di adiacenza, dove c'è un arco tra i nodi `ASNi` e `ASNj` se e solo se la sequenza `ASNi|ASNj` è presente nei path AS.
 * Assegnare un peso ad ogni arco presente nel grafo: l'arco `ASNi - ASNj` ha peso `x`, dove `x` è la frequenza dell'apparizione della sequenza `ASNi|ASNj` o `ASNj|ASNi` nei path AS
 * Aggiornare in maniera dinamica il grafo, dunque ad ogni inserimento di nodi è necessario aggiornare la frequenza degli archi interessati
 * Individuare la componente connessa massimale all'interno del grafo
+* Calcolare e conservare le informazioni strutturali del grafo, ovvero numero di nodi, numero di archi e il numero di archi presenti per ogni peso possibile (ovvero per ogni n intero positivo, quanti archi ASNi|ASNj ci sono con peso n).
 
-### 2.5 Strutture dati, librerie e algoritmi necessari:
-* Tabella hash per la mappatura degli ASN
-* Lista di adiacenza per la costruzione del grafo
-* Struct personalizzata per associare destinazione e frequenza (peso) dell'arco
-* Ricerca *BFS* per l'individuazione della componente connessa massimale
+### 2.4 Strutture dati, librerie e algoritmi necessari:
+* Tabella hash per la mappatura degli ASN.
+* Lista di adiacenza per la costruzione del grafo.
+* Struct per associare destinazione e frequenza (peso) dell'arco.
+* Ricerca *BFS* per l'individuazione della componente connessa massimale.
 
-### 2.6 Complessità attesa:
-Il tempo richiesto per la costruzione del grafo dovrebbe essere lineare rispetto alla dimensione dei vettori di input. Il tempo richiesto per la ricerca della componente connessa massimale dovrebbe essere lineare rispetto al numero dei nodi + il numero degli archi del grafo. 
+### 2.5 Complessità attesa:
+Il tempo richiesto per la costruzione del grafo dovrebbe essere lineare rispetto alla dimensione dei vettori di input. Il tempo richiesto per la ricerca della componente connessa massimale dovrebbe essere $O(V+E)$, dove $V$ è il numero di nodi ed $E$ il numero di archi del grafo. 
 
-### 2.7 Casi limite:
-Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, input vettore singolo (nodo senza archi), frequenza degli archi troppo elevata (*overflow*, usare interi a 64 bit), componenti connesse massimali non uniche (in caso di pareggio selezionare la componente connessa la cui somma dei pesi degli archi è maggiore ed a ulteriore parità di nodi e di somma dei pesi, si seleziona la componente che contiene il nodo con l'ASN originale numericamente più basso).
+### 2.6 Casi limite:
+Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, input vettore singolo (nodo senza archi), frequenza degli archi troppo elevata (*overflow*, usare interi a 64 bit).Nel caso di componenti connesse massimali non uniche selezionare la componente connessa la cui somma dei pesi degli archi è maggiore ed a ulteriore parità di nodi e di somma dei pesi, si seleziona la componente che contiene il nodo con l'ASN originale numericamente più basso.
 
-### 2.8 Interazione con gli altri moduli:
-Il modulo riceve in input vettori provenienti dal modulo **DataLoader** e deve anche fornire informazioni al modulo di analisi quali numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo **Solver**.
+### 2.7 Interazione con gli altri moduli:
+Il modulo riceve in input vettori provenienti dal modulo **DataLoader** e deve fornire le informazioni strutturali del grafo a **General**. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo **Solver**.
 
 ## 3. Modulo di risoluzione (Solver)
 
-### 3.1 Compiti principali del modulo
-
-* Ricevere due nodi bersaglio di cui calcolare il *minimax*
-* Trovare il cammino *minimax* tra i due nodi e restituirne il valore
-* Contare parallelamente il numero di cammini ottimali (sempre secondo la logica *minimax*) tra i due nodi 
-
-### 3.2 Input:
+### 3.1 Input:
 Il modulo deve ricevere in input il codice di due AS dei quali si vuole calcolare peso e numero dei cammini *minimax*.
 
-### 3.3 Output:
+### 3.2 Output:
 Il modulo dovrà restituire in output: 
-* Il peso del cammino *minimax* ottimale
-* Lower bound del numero di cammini *minimax* totali
-* Il numero esatto dei cammini *minimax* con lunghezza minima
-* La sequenza effettiva dei nodi di uno dei cammini ottimali
+* Il peso del cammino *minimax* ottimale.
+* Lower bound del numero di cammini *minimax* totali.
+* Il numero esatto dei cammini *minimax* con lunghezza minima.
+* La sequenza effettiva dei nodi di uno dei cammini ottimali.
 
-### 3.4 Funzionalità richieste:
+### 3.3 Funzionalità richieste:
 Il modulo deve:
-* Trovare il path ottimale tra `ASNi` e `ASNj` dove il peso di un cammino è definito come il massimo peso tra i pesi degli archi attraversati dal cammino. Dunque vogliamo cercare il path tra `ASNi` e `ASNj` con il peso minore.
-* Contare il numero di path tra `ASNi` e `ASNj` che hanno tale peso (questo va fatto parallelamente alla ricerca del cammino ottimale).
+* Trovare il cammino ottimale tra `ASNi` e `ASNj` dove il costo di un cammino è definito come il massimo peso tra i pesi degli archi attraversati dal cammino. Dunque vogliamo cercare il cammino tra `ASNi` e `ASNj` con il costo minore.
+* Contare il numero di cammini tra `ASNi` e `ASNj` che hanno tale costo (questo va fatto parallelamente alla ricerca del cammino ottimale).
 
 ### - Approfondimento sul conteggio di cammini ottimali:
-Nel conteggio si presenta un problema dovuto alla complessità attesa: contare il numero di cammini ottimali parallelamente alla ricerca in tempo lineare è impossibile e invece implementare un conteggio separato alla ricerca prevederebbe tempo esponenziale, se non fattoriale. L'algoritmo descritto nella specifica non conta TUTTI i cammini di peso minimo, ma rappresenta un limite inferiore. I motivi sono due:
+Nel conteggio si presenta un problema dovuto alla complessità attesa: contare il numero esatto di cammini ottimali parallelamente alla ricerca in tempo lineare è impossibile e invece implementare un conteggio separato alla ricerca prevederebbe tempo esponenziale, se non fattoriale. L'algoritmo descritto nella specifica non conta TUTTI i cammini di costo minimo, ma rappresenta un limite inferiore. I motivi sono due:
 
 * Prefissi non ottimali: con il massimo (*Dijkstra* modificato), a differenza della somma (*Dijkstra* classico), un cammino ottimale può avere prefissi non ottimali, perché l'arco più pesante "copre" i pesi precedenti. Esempio: archi `1-2 (1), 1-3 (2), 2-4 (3), 3-4 (4), 4-5 (10)`. I cammini `1-2-4-5` e `1-3-4-5` pesano entrambi 10, ma il secondo non viene contato.
 
@@ -139,7 +106,7 @@ Entrambi i dati verrano poi presentati nell'analisi sperimentale.
 
 ### 3.5 Strutture dati, librerie e algoritmi necessari:
 * Utilizzo dell'algoritmo di *Dijkstra* modificato: durante la ricerca i pesi degli archi non andranno sommati come nel caso classico, ma andrà conservato solo il massimo peso degli archi attraversati.
-* Coda di priorità per la ricerca con *Dijkstra*
+* Coda di priorità per la ricerca con *Dijkstra*.
 * Vettori dinamici per la memorizzazione delle distanze *minimax*, dei contatori dei cammini e dei padri (per memorizzare la strada percorsa).
 
 ### 3.6 Complessità attesa:
@@ -149,16 +116,16 @@ Il tempo richiesto per la ricerca del cammino ottimale è $O((V + E) \log V)$, d
 Il modulo dovrà gestire i casi limite: input non validi (ASN non validi, ASN non presenti nel grafo), grafo vuoto, nodi sorgente e destinazione coincidenti (che devono restituire costo 0 e 1 cammino ottimale), nodi di input validi ma appartenenti a componenti connesse separate (che devono restituire l'assenza di percorsi), e il potenziale overflow matematico per il numero di cammini ottimali.
 
 ### 3.8 Interazione con gli altri moduli:
-Il modulo deve accedere all'interfaccia di **ASGraph** per consultare il grafo e ricavare tutte le informazioni relative ad esso. Inoltre deve interagire con il modulo di analisi, al quale dovrà fornire l'output.
+Il modulo deve accedere all'interfaccia di **ASGraph** per consultare il grafo e ricavare tutte le informazioni relative ad esso. Inoltre deve interagire con **General**, al quale dovrà fornire l'output.
 
 ## 4. Modulo di analisi (General)
 
 ### 4.1 Compiti principali del modulo
 
-* Coordinare il flusso di esecuzione (parsing, cotruzione del grafo, ricerca e conteggio cammini minimax,...)
-* Raccogliere i dati strutturali della rete (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi)
-* Misurare la tempistica di esecuzione (totale e dei vari step)
-* Raccogliere per ogni query i dati: costo del cammino *minimax* e numero di percorsi ottimi individuati
+* Coordinare il flusso di esecuzione (parsing, cotruzione del grafo, ricerca e conteggio cammini minimax,...).
+* Raccogliere i dati strutturali della rete (numero di nodi, numero di archi, distribuzione della frequenza degli archi).
+* Misurare la tempistica di esecuzione (totale e dei vari step).
+* Raccogliere per ogni query i dati: costo del cammino *minimax* e numero di percorsi ottimi individuati.
 
 ### 4.2 Input:
 Il modulo deve ricevere in input:
@@ -226,7 +193,7 @@ In particolare:
 
 * l'opzione 3. dovrà chiedere il percorso file del nuovo dataset e poi, dopo che il grafo è stato aggiornato, riproporre l'interfaccia da capo.
 
-* l'opzione 4. dovrà chiedere all'utente il nome con cui salvare i file in esportazione: *name*. Successivamente creare 4 file:
+* l'opzione 4. dovrà chiedere all'utente il nome con cui salvare i file in esportazione: *name*. Successivamente creare 5 file:
     * *name*_summary.txt con struttura:
     
         dataset_files: *files di dataset caricati* \
@@ -244,6 +211,10 @@ In particolare:
     * *name*_graph.txt che rappresenta il grafo nella sua interezza. Deve avere il seguente formato per ogni riga:
 
         `ASNi | ASNj | peso dell'arco ASNi-ASNj`
+
+    * *name*_distribution.txt dove viene riportata la distribuzione della frequenza degli archi in ordine crescente (da 1 a *max*, dove *max* è il massimo tra i pesi degli archi presenti nel grafo). Deve avere il seguente formato per ogni riga:
+
+        `peso n | numero di archi con peso n`
     
     * *name*_queries.txt con struttura:
 
@@ -279,26 +250,21 @@ In particolare:
 
 ### 4.4 Funzionalità richieste:
 Il modulo deve:
-* Gestire input e output.
-* Chiamare **DataLoader** passandogli il file `.bz2`.
-* Chiamare **ASGraph** passandogli l'output di **DataLoader**, vettore per vettore.
-* Una volta finito di costruire il grafo, chiamare **Solver** passandogli i due ASN in input.
-* Raccogliere tutti i dati provenienti da **ASGraph** e **Solver** (numero di nodi, numero di archi, dimensione della componente connessa massimale, distribuzione della frequenza degli archi,il peso del cammino minimax ottimale, lower bound del numero di cammini minimax totali, il numero esatto dei cammini minimax con lunghezza minima, la sequenza effettiva dei nodi di uno dei cammini ottimali).
+* Gestire l'input: sarà necessario controllare se l'utente ha avviato il programma fornendo un file (ad esempio digitando nel terminale `./ASGraph_Solver dataset.bz2`). Se l'utente lancia il programma "a vuoto" (solo `./ASGraph_Solver`), **General** dovrà rilevare l'assenza del parametro e attivare la modalità interattiva, stampando a schermo una richiesta come: "`Nessun dataset rilevato. Inserisci il percorso del file .bz2: `", richiedendo quindi all'utente di inserire un percorso file nel quale si trova il file `.bz2`.
+* Avviare **DataLoader** passandogli il file `.bz2`.
+* Avviare **ASGraph** passandogli l'output di **DataLoader**, vettore per vettore.
+* Una volta finito di costruire il grafo, avviare **Solver** passandogli i due ASN richiesti in input.
+* Raccogliere tutti i dati provenienti da **ASGraph** e **Solver** (numero di nodi, numero di archi, distribuzione della frequenza degli archi, il peso del cammino minimax ottimale, lower bound del numero di cammini minimax totali, il numero esatto dei cammini minimax con lunghezza minima, la sequenza effettiva dei nodi di uno dei cammini ottimali).
 * Calcolare i tempi di esecuzione di ogni modulo e di tutto il processo.
-* Fornire una scelta per l'inserimento dei nodi su cui effettuare l'analisi, sia manuale (inseriti dall'utente) sia randomico.
-* Fornire un'interfaccia per l'utente da cui poter gestire tutta l'analisi.
+* Fornire i dati all'utente tramite l'interfaccia descritta nella sezione 4.3.
 * Gestire gli errori provenienti dagli altri moduli presentandoli all'utente.
-
-### - Approfondimento sulla chiamata e sull'interfaccia di General:
-Dato che **General** verrà chiamato dal main, esso dovrà fornire un interfaccia per l'utente. Il main controlla se l'utente ha avviato il programma fornendo un file (ad esempio digitando nel terminale `./ASGraph_Solver dataset.bz2`). Se il file è presente, lo passa direttamente a **General**, che avvia il caricamento. Se l'utente lancia il programma "a vuoto" (solo `./ASGraph_Solver`), **General** dovrà rilevare l'assenza del parametro e attivare la modalità interattiva, stampando a schermo una richiesta come: "`Nessun dataset rilevato. Inserisci il percorso del file .bz2: `", richiedendo quindi all'utente di inserire un percorso file nel quale si trova il file `.bz2`.
-Per quanto riguarda la gestione dell'analisi, l'interfaccia di **General** dovrà prevedere, come abbiamo appena detto, un'opzione per inserire il file manualmente, se non è già stato inserito e un'interfaccia da linea di comando descritta nella sezione 4.3.
 
 ### 4.5 Strutture dati, librerie e algoritmi necessari:
 * Libreria `chrono` per calcolare i tempi di esecuzione in millisecondi/microsecondi.
 * Libreria `random` per estrarre in modo statisticamente uniforme gli indici da passare al **Solver** durante i test automatizzati.
 * Libreria `fstream` per generare e scrivere i risultati nei file `.csv`
 * Librerie `iostream` e `limits` per la gestione sicura dell'input da tastiera: permettono di utilizzare `std::cin.clear()` e `std::cin.ignore()` per resettare lo stato di errore e svuotare il buffer quando l'utente inserisce tipi di dato sbalgliati (es. lettere al posto di numeri), prevenendo loop infiniti del terminale.
-* Variabili `std::string` per catturare l'input da tastiera e struct/vettori di supporto temporanei per immagazzinare i risultati delle esecuzioni in batch prima di scriverli su file
+* Variabili `std::string` per catturare l'input da tastiera e struct/vettori di supporto temporanei per immagazzinare i risultati delle esecuzioni in batch prima di scriverli su file.
 
 ### 4.6 Complessità attesa:
 La complessità di **General** dipende esclusivamente da cosa l'utente decide di chiamare:
@@ -307,9 +273,8 @@ La complessità di **General** dipende esclusivamente da cosa l'utente decide di
 * Esecuzione in batch (N query): la complessità temporale sarà $O(N \cdot ((V+E)\log V))$, dove $N$ è il numero di esecuzioni casuali richieste dall'utente.
 
 ### 4.7 Casi limite:
-* Input utente non valido: il modulo deve gestire l'inserimento in input di lettere invece di numeri (ripulendo il buffer di input e riproponendo la richiesta senza crashare), di ASN non accettabili o di ASN non presenti nel grafo, catturando l'errore e avvisando l'utente. Inoltre deve controllare che il file in input abbia estensione `.bz2`
-* Violazione della sequenzialità (nel caso di esecuzione manuale dei moduli): il modulo non deve permettere i tentativi di avviare il **Solver** quando la memoria di **ASGraph** è vuota o i  tentativi di lanciare l'snalisi prima di aver caricato un dataset.
-* Estrazione casuale isolata: i nodi estratti randomicamente non devono essere "estratti a vuoto" (numeri interi generici fino a 4 miliardi), ma vincolati agli ID validi di **ASGraph**. Inoltre, per evitare che test automatizzati massicci restituiscano sempre "`nessun cammino trovato`", la randomizzazione dovrebbe idealmente pescare solo nodi appartenenti alla componente connessa massimale.
+* Input utente non valido: il modulo deve gestire l'inserimento in input di lettere invece di numeri (ripulendo il buffer di input e riproponendo la richiesta senza crashare), di ASN non accettabili o di ASN non presenti nel grafo, catturando l'errore e avvisando l'utente. Inoltre deve controllare che il file in input abbia estensione `.bz2`.
+* Estrazione casuale isolata: i nodi estratti randomicamente non devono essere "estratti a vuoto" (numeri interi generici fino a 4 miliardi), ma vincolati agli ASN validi di **ASGraph**. Inoltre, per evitare che test automatizzati massicci restituiscano sempre "`nessun cammino trovato`", la randomizzazione dovrebbe pescare solo nodi appartenenti alla componente connessa massimale.
 
 ### 4.8 Interazione con gli altri moduli:
 Il modulo interagisce con tutti gli altri, istanziando e distruggendo gli oggetti di **DataLoader**, **ASGraph** e **Solver**, passando gli input e output tra di loro e interrogando i metodi const in sola lettura di ogni modulo per recuperare i dati e impacchettarli nei report finali.
