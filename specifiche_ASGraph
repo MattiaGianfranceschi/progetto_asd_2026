@@ -1,0 +1,125 @@
+# Specifiche Modulo ASGraph
+
+## 1. Tipi di Dato e Strutture Pubbliche
+
+### `NodeId`
+* **Firma:** `using NodeId = std::uint32_t;`
+* **Scopo:** Rappresenta l'indice interno contiguo (da `0` a `n-1`) assegnato a ciascun nodo nel grafo.
+* **Dettagli:** L'uso di un ID interno ottimizza l'accesso alla memoria (permettendo di usare array al posto di mappe per l'adiacenza) isolando il motore del grafo dai valori sparsi degli ASN originali a 32 bit.
+
+### `Weight`
+* **Firma:** `using Weight = std::uint64_t;`
+* **Scopo:** Rappresenta la frequenza (il peso) di un arco, ovvero il numero di volte che la sequenza è apparsa nei percorsi analizzati.
+* **Dettagli:** Utilizza 64 bit per prevenire matematicamente qualsiasi rischio pratico di overflow anche con dataset immensi.
+
+### `Edge`
+* **Firma:** `struct Edge { NodeId to; Weight weight; };`
+* **Scopo:** Elemento base della lista di adiacenza che memorizza l'arco uscente.
+* **Campi:** `to` (indice del nodo di destinazione), `weight` (frequenza dell'arco).
+
+### `Component`
+* **Firma:** `struct Component { std::vector<NodeId> nodes; std::size_t edgeCount = 0; Weight totalWeight = 0; ASN minAsn = 0; };`
+* **Scopo:** Aggrega le metriche e la topologia di una singola componente connessa.
+* **Campi:** `nodes` (lista dei nodi in ordine di visita BFS), `edgeCount` (numero di archi interni, senza doppioni direzionali), `totalWeight` (somma delle frequenze degli archi interni), `minAsn` (l'ASN numericamente più basso per la risoluzione dei pareggi).
+
+## 2. Funzioni Helper (Namespace anonimo)
+
+### `saturatingAdd`
+* **Firma:** `Weight saturatingAdd(Weight a, Weight b)`
+* **Scopo:** Esegue l'addizione tra due pesi impedendo il crash del contatore.
+* **Input:** Due valori numerici `Weight`.
+* **Output:** La somma dei valori o, in caso di overflow imminente, il valore massimo rappresentabile (`kMaxWeight`).
+* **Complessità Computazionale:** $O(1)$.
+
+### `edgeKey`
+* **Firma:** `std::uint64_t edgeKey(NodeId a, NodeId b)`
+* **Scopo:** Genera una chiave hash univoca e invariante alla direzione per un arco non orientato, combinando i due ID a 32 bit in un singolo intero a 64 bit.
+* **Input:** I due `NodeId` degli estremi dell'arco.
+* **Output:** Valore a 64 bit con ID minore nei bit alti e ID maggiore in quelli bassi.
+* **Complessità Computazionale:** $O(1)$.
+
+## 3. Classe `ASGraph` - Metodi Pubblici di Costruzione
+
+### `addPath`
+* **Firma:** `bool addPath(const ASPath& path);`
+* **Scopo:** Inserisce un nuovo cammino, instanziando i nodi non ancora presenti e aggiornando le frequenze degli archi.
+* **Input:** `path` (`const ASPath&`): Vettore sequenziale di ASN.
+* **Output:** `true` se il percorso è valido e inserito, `false` se vuoto o se contiene l'ASN `0` (riservato e non valido nel protocollo reale).
+* **Eccezioni:** Propaga `std::length_error` se si supera il limite fisico di nodi creabili (circa 4.2 miliardi).
+* **Effetti collaterali:** Modifica la mappa nodi e la lista di adiacenza. Aggiorna internamente i contatori (nodi, archi, distribuzioni pesi). Invalida la cache della componente connessa massimale (`cacheValid_ = false`). I self-loop consecutivi vengono scartati silenziosamente.
+* **Complessità Computazionale:** $O(L)$ in media, dove $L$ è la lunghezza del cammino inserito, garantita dalle tabelle hash sottostanti (`std::unordered_map`).
+
+## 4. Classe `ASGraph` - Accesso alle Informazioni e Analisi
+
+### Metodi di Ispezione Semplice
+* **Firme:** `numNodes()`, `numEdges()`, `pathsAdded()`, `pathsRejected()`
+* **Scopo:** Interrogare in sola lettura i contatori globali del grafo.
+* **Output:** `std::size_t`.
+* **Complessità Computazionale:** $O(1)$.
+
+### `largestComponent` e `largestComponentSize`
+* **Firma:** `const Component& largestComponent() const;`
+* **Scopo:** Restituisce i dettagli strutturali della componente connessa principale della rete. Se la cache è sporca o vuota, innesca automaticamente il ricalcolo.
+* **Regole di pareggio:** Si seleziona la componente con più nodi; a parità, quella con somma dei pesi maggiore; a ulteriore parità, quella contenente l'ASN più basso.
+* **Eccezioni:** Nessuna.
+* **Effetti collaterali:** Se la cache non è valida, chiama `computeLargestComponent()` (che altera internamente lo stato mutabile della classe).
+* **Complessità Computazionale:** $O(1)$ se la cache è valida. $O(V + E)$ (tempo lineare della BFS) se la cache deve essere rigenerata.
+
+### `inLargestComponent`
+* **Firma:** `bool inLargestComponent(NodeId id) const;`
+* **Scopo:** Verifica se un nodo specifico appartiene al backbone primario della rete.
+* **Input:** `id` (`NodeId`): Identificativo interno del nodo.
+* **Output:** `true` se vi appartiene, `false` altrimenti.
+* **Eccezioni:** Lancia `std::out_of_range` se il NodeId richiesto non esiste.
+* **Effetti collaterali:** Innesca il ricalcolo della BFS se la cache è non valida.
+* **Complessità Computazionale:** $O(1)$ se in cache, $O(V + E)$ altrimenti.
+
+### `edgeWeightDistribution`
+* **Firma:** `std::map<Weight, std::size_t> edgeWeightDistribution() const;`
+* **Scopo:** Genera un dizionario ordinato delle frequenze degli archi per facilitare stampe, report o grafici nel modulo General.
+* **Output:** `std::map` dove la chiave è il peso (frequenza) e il valore è il numero di archi che possiedono tale frequenza.
+* **Complessità Computazionale:** $O(D \log D)$, dove $D$ è il numero di frequenze distinte (valori unici), poiché si converte una mappa hash non ordinata in un albero Red-Black (`std::map`).
+
+## 5. Classe `ASGraph` - Interfaccia di Esplorazione (per il Solver)
+
+### `findNode` e `asnOf`
+* **Firme:** `bool findNode(ASN asn, NodeId& id) const;` / `ASN asnOf(NodeId id) const;`
+* **Scopo:** Offrono la traduzione bidirezionale tra gli ASN reali mondiali e gli indici interni gestiti dall'algoritmo.
+* **Input:** ASN esterno o ID interno.
+* **Output:** `findNode` restituisce un booleano (esito della ricerca) per non bloccare il programma con un'eccezione, compilando il parametro per referenza; `asnOf` restituisce direttamente il valore.
+* **Eccezioni:** `asnOf` lancia `std::out_of_range` su ID inesistente.
+* **Complessità Computazionale:** $O(1)$ su media per `findNode` (hash map), $O(1)$ rigoroso per `asnOf` (array lookup).
+
+### `neighbors` e `degree`
+* **Firme:** `const std::vector<Edge>& neighbors(NodeId id) const;` / `std::size_t degree(NodeId id) const;`
+* **Scopo:** Forniscono accesso immediato alla mappa di esplorazione per un nodo.
+* **Eccezioni:** Lanciano `std::out_of_range` se il nodo in input eccede le dimensioni del grafo.
+* **Complessità Computazionale:** $O(1)$.
+
+### `edgeWeight`
+* **Firma:** `bool edgeWeight(NodeId u, NodeId v, Weight& weight) const;`
+* **Scopo:** Interroga il peso esatto (frequenza) tra due nodi senza dover scorrere le loro liste di adiacenza.
+* **Input / Output:** Accetta due `NodeId` e valorizza il parametro per referenza `weight`. Restituisce `false` se l'arco non esiste.
+* **Complessità Computazionale:** $O(1)$ in media (ricerca O(1) in tabella hash dedicata `edgeSlots_`).
+
+## 6. Classe `ASGraph` - Metodi e Strutture Privati
+
+### `EdgeSlots` (Struct privata)
+* **Firma:** `struct EdgeSlots { std::uint32_t posInLow; std::uint32_t posInHigh; };`
+* **Scopo:** Registra l'indice di memoria esatto in cui un arco è stato salvato in ciascuna delle due liste di adiacenza (quella del nodo d'origine e quella di destinazione). Essenziale per incrementare le frequenze in $O(1)$ durante `addPath`.
+
+### `getOrCreateNode`
+* **Firma:** `NodeId getOrCreateNode(ASN asn);`
+* **Scopo:** Verifica se un ASN è tracciato; se assente, lo registra e alloca lo spazio nella lista di adiacenza principale, restituendo in ogni caso l'identificativo interno di riferimento.
+* **Complessità Computazionale:** $O(1)$ ammortizzato.
+
+### `addEdgeOccurrence`
+* **Firma:** `void addEdgeOccurrence(NodeId u, NodeId v);`
+* **Scopo:** Gestisce l'aggiunta logica degli archi durante un inserimento. Se l'arco non esiste, ne crea l'ingresso bidirezionale registrandone le coordinate in `edgeSlots_`; altrimenti, recupera l'arco preesistente incrementandone la frequenza, con ricalcolo in tempo reale delle distribuzioni aggregate (`weightCounts_`).
+* **Complessità Computazionale:** $O(1)$ ammortizzato.
+
+### `computeLargestComponent`
+* **Firma:** `void computeLargestComponent() const;`
+* **Scopo:** Esegue una esplorazione Breath-First Search (BFS) in blocco su tutto il grafo non analizzato, individuando, confrontando e salvando nella cache (`largest_`) i nodi facenti parte della componente dominante. Compila anche il bitset `inLargest_` per risposte ad accesso istantaneo.
+* **Effetti collaterali:** Attiva la flag `cacheValid_`. Pur essendo marcato `const` (poiché non altera la struttura del grafo ai fini esterni), modifica variabili interne segnate con la keyword `mutable`.
+* **Complessità Computazionale:** $O(V + E)$ esatto (la BFS scorre ogni nodo una volta, visitando le sue adiacenze).
