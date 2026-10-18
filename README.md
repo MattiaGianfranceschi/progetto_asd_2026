@@ -24,18 +24,18 @@ sarà necessario isolare prima il blocco `1849|702|701|3479` e poi utilizzare `|
 
 Ciascuna di queste operazioni dovrà essere svolta riga per riga per evitare problemi di memoria, dunque il flow di lavoro sarà: decompressione di una riga, parsing, inserimento in vettore dinamico, restituzione del vettore al modulo successivo, ripetere da capo.
 
-### 1.5 Strutture dati, librerie e algoritmi necessari:
+### 1.4 Strutture dati, librerie e algoritmi necessari:
 * Vettori dinamici.
 * Libreria `libbz2`.
 * Librerie `string` e `sstream` per il parsing.
 
-### 1.6 Complessità attesa:
+### 1.5 Complessità attesa:
 Il tempo richiesto dovrebbe essere lineare rispetto alla dimensione del file di input.
 
-### 1.7 Casi limite:
+### 1.6 Casi limite:
 Il modulo deve restituire errore se il file in input è vuoto, o se non è presente al suo interno alcun cammino AS.
 
-### 1.8 Interazioni con gli altri moduli:
+### 1.7 Interazioni con gli altri moduli:
 L'output di **DataLoader** sarà utilizzato dal modulo successivo (**ASGraph**) come input.
 
 ### Dettagli di implementazione di DataLoader
@@ -74,6 +74,10 @@ Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, i
 ### 2.7 Interazione con gli altri moduli:
 Il modulo riceve in input vettori provenienti dal modulo **DataLoader** e deve fornire le informazioni strutturali del grafo a **General**. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo **Solver**.
 
+### Dettagli di implementazione di ASGraph
+
+I dettagli di implementazione di ASGraph sono riportati nel file *specifiche_ASGraph*
+
 ## 3. Modulo di risoluzione (Solver)
 
 ### 3.1 Input:
@@ -104,19 +108,23 @@ Per aggirare questo problema il modulo prevede due versioni dell'algoritmo:
 
 Entrambi i dati verrano poi presentati nell'analisi sperimentale.
 
-### 3.5 Strutture dati, librerie e algoritmi necessari:
+### 3.4 Strutture dati, librerie e algoritmi necessari:
 * Utilizzo dell'algoritmo di *Dijkstra* modificato: durante la ricerca i pesi degli archi non andranno sommati come nel caso classico, ma andrà conservato solo il massimo peso degli archi attraversati.
 * Coda di priorità per la ricerca con *Dijkstra*.
 * Vettori dinamici per la memorizzazione delle distanze *minimax*, dei contatori dei cammini e dei padri (per memorizzare la strada percorsa).
 
-### 3.6 Complessità attesa:
+### 3.5 Complessità attesa:
 Il tempo richiesto per la ricerca del cammino ottimale è $O((V + E) \log V)$, dove $V$ è il numero di nodi ed $E$ il numero di archi esplorati. Poiché il conteggio del numero di cammini ottimali avviene parallelamente durante la fase di rilassamento degli archi, la complessità del conteggio è assorbita da quella della ricerca, mantenendo il tempo totale di esecuzione a $O((V + E) \log V)$
 
-### 3.7 Casi limite:
+### 3.6 Casi limite:
 Il modulo dovrà gestire i casi limite: input non validi (ASN non validi, ASN non presenti nel grafo), grafo vuoto, nodi sorgente e destinazione coincidenti (che devono restituire costo 0 e 1 cammino ottimale), nodi di input validi ma appartenenti a componenti connesse separate (che devono restituire l'assenza di percorsi), e il potenziale overflow matematico per il numero di cammini ottimali.
 
-### 3.8 Interazione con gli altri moduli:
+### 3.7 Interazione con gli altri moduli:
 Il modulo deve accedere all'interfaccia di **ASGraph** per consultare il grafo e ricavare tutte le informazioni relative ad esso. Inoltre deve interagire con **General**, al quale dovrà fornire l'output.
+
+### Dettagli di implementazione di Solver
+
+I dettagli di implementazione di Solver sono riportati nel file *specifiche_Solver*
 
 ## 4. Modulo di analisi (General)
 
@@ -278,3 +286,7 @@ La complessità di **General** dipende esclusivamente da cosa l'utente decide di
 
 ### 4.8 Interazione con gli altri moduli:
 Il modulo interagisce con tutti gli altri, istanziando e distruggendo gli oggetti di **DataLoader**, **ASGraph** e **Solver**, passando gli input e output tra di loro e interrogando i metodi const in sola lettura di ogni modulo per recuperare i dati e impacchettarli nei report finali.
+
+### Dettagli di implementazione di General
+
+I dettagli di implementazione di General sono riportati nel file *specifiche_General*
