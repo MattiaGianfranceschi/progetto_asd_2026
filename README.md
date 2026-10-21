@@ -38,10 +38,6 @@ Il modulo deve restituire errore se il file in input è vuoto, o se non è prese
 ### 1.7 Interazioni con gli altri moduli:
 L'output di **DataLoader** sarà utilizzato dal modulo successivo (**ASGraph**) come input.
 
-### Dettagli di implementazione di DataLoader
-
-I dettagli di implementazione di DataLoader sono riportati nel file *specifiche_DataLoader*
-
 ## 2. Modulo di gestione del grafo (ASGraph)
 
 ### 2.1 Input:
@@ -73,10 +69,6 @@ Il modulo deve gestire i casi limite come: input non accettabili, input vuoto, i
 
 ### 2.7 Interazione con gli altri moduli:
 Il modulo riceve in input vettori provenienti dal modulo **DataLoader** e deve fornire le informazioni strutturali del grafo a **General**. Inoltre deve fornire l'accesso a tutte le informazione del grafo al modulo **Solver**.
-
-### Dettagli di implementazione di ASGraph
-
-I dettagli di implementazione di ASGraph sono riportati nel file *specifiche_ASGraph*
 
 ## 3. Modulo di risoluzione (Solver)
 
@@ -121,10 +113,6 @@ Il modulo dovrà gestire i casi limite: input non validi (ASN non validi, ASN no
 
 ### 3.7 Interazione con gli altri moduli:
 Il modulo deve accedere all'interfaccia di **ASGraph** per consultare il grafo e ricavare tutte le informazioni relative ad esso. Inoltre deve interagire con **General**, al quale dovrà fornire l'output.
-
-### Dettagli di implementazione di Solver
-
-I dettagli di implementazione di Solver sono riportati nel file *specifiche_Solver*
 
 ## 4. Modulo di analisi (General)
 
@@ -286,7 +274,3 @@ La complessità di **General** dipende esclusivamente da cosa l'utente decide di
 
 ### 4.8 Interazione con gli altri moduli:
 Il modulo interagisce con tutti gli altri, istanziando e distruggendo gli oggetti di **DataLoader**, **ASGraph** e **Solver**, passando gli input e output tra di loro e interrogando i metodi const in sola lettura di ogni modulo per recuperare i dati e impacchettarli nei report finali.
-
-### Dettagli di implementazione di General
-
-I dettagli di implementazione di General sono riportati nel file *specifiche_General*
